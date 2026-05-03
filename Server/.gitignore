@@ -1,0 +1,26 @@
+.env
+node_modules/
+.DS_Store
+# Ignore environment variable files
+.env.local  
+.env.development
+.env.test
+# Ignore build output
+dist/
+build/
+# Ignore logs
+logs/
+# Ignore coverage reports
+coverage/
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+# Ignore IDE-specific files
+.vscode/
+.idea/
+# Ignore npm debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# Ignore lock files 
+package-lock.json
