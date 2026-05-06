@@ -1,28 +1,55 @@
-import { Timestamp } from "bson";
 import mongoose from "mongoose";
-import { match } from "node:assert";
+import bcrypt from "bcryptjs";
 
 const UserSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
+
   email: {
     type: String,
     required: true,
     unique: true,
-    match: [/.+\@.+\..+/, 'Please fill a valid email address'],
     trim: true,
-    lowercase: true
+    lowercase: true,
+    match: [/.+\@.+\..+/, "Please fill a valid email address"]
   },
+
   password: {
     type: String,
     required: true,
-    minlength: 6,
-    match: [/(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}/, 'Password must contain at least one uppercase letter, one lowercase letter, and one number']
+    minlength: 6
   },
-  Timestamp: true
+
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-const User = mongoose.model('User', UserSchema);
+
+// Hash password before saving
+UserSchema.pre("save", async function () {
+
+  if (!this.isModified("password")) {
+    return;
+  }
+
+  this.password = await bcrypt.hash(this.password, 10);
+
+});
+
+
+// Compare passwords
+UserSchema.methods.comparePassword = async function (enteredPassword) {
+
+  return await bcrypt.compare(enteredPassword, this.password);
+
+};
+
+
+const User = mongoose.model("User", UserSchema);
+
 export default User;
