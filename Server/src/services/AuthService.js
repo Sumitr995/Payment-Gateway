@@ -10,7 +10,21 @@ export const AuthRegisterService = async (name, email, password) => {
       // Create new user
       const newUser = new userModel({ name, email, password });
       await newUser.save();
-      return { success: true, message: 'User registered successfully' };
+      return newUser;
+    }
+  } catch (error) {
+    throw new Error(error.message);
+  }
+};
+
+export const AuthLoginService = async (email, password) => {
+  try {
+    const user = await userModel.findOne({ email });
+
+    if (user && (await user.comparePassword(password))) {
+      return user;
+    } else {
+      throw new Error('Invalid email or password');
     }
   } catch (error) {
     throw new Error(error.message);
