@@ -1,33 +1,21 @@
 import userModel from '../models/userModel.js';
+import AppError from '../utils/AppError.js';
 
 export const AuthRegisterService = async (name, email, password) => {
-  try {
-    // Check if user already exists
-    const existingUser = await userModel.findOne({ email });
-    if (existingUser) {
-      throw new Error('User already exists');
-    } else {
-      // Create new user
-      const newUser = new userModel({ name, email, password });
-      await newUser.save();
-      return newUser;
-    }
-  } catch (error) {
-    throw new Error(error.message);
+  const existingUser = await userModel.findOne({ email });
+  if (existingUser) {
+    throw new AppError('User already exists', 409);
   }
+  const newUser = new userModel({ name, email, password });
+  await newUser.save();
+  return newUser;
 };
 
 export const AuthLoginService = async (email, password) => {
-  try {
-    const user = await userModel.findOne({ email });
-
-    if (user && (await user.comparePassword(password))) {
-      return user;
-    } else {
-      throw new Error('Invalid email or password');
-    }
-  } catch (error) {
-    throw new Error(error.message);
+  const user = await userModel.findOne({ email });
+  if (!user || !(await user.comparePassword(password))) {
+    throw new AppError('Invalid email or password', 401);
   }
+  return user;
 };
 

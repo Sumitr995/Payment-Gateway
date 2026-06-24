@@ -1,20 +1,20 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/AuthRoutes.js';
+import healthRoutes from './routes/healthRoutes.js';
+import errorHandler from './middleware/errorHandler.js';
+import { globalLimiter, authLimiter } from './middleware/rateLimiter.js';
 
-// initialize express app
 const app = express();
 
-// middleware
-app.use(express.json()); // for parsing application/json
-app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(globalLimiter);
 
+app.use('/api/v1', healthRoutes);
+app.use('/api/v1/auth', authLimiter, authRoutes);
 
-
-// routes
-app.use('/api/auth', authRoutes);
-
-
+app.use(errorHandler);
 
 export default app;

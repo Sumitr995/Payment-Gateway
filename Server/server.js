@@ -3,17 +3,17 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import connectDB from './src/config/DB.js';
 import app from './src/app.js';
+import logger from './src/utils/logger.js';
 
 dotenv.config();
-await connectDB(); // Call the connectDB function and wait for it to complete
+await connectDB();
 const port = process.env.PORT || 3000;
 
-
 app.get('/', (req, res) => {
-  res.send("Welcome to the API");
+  res.send("Welcome to the Payment Gateway API");
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+  logger.info({ port }, 'Server started');
 });
 

@@ -1,51 +1,48 @@
-import express from "express";
 import { AuthRegisterService, AuthLoginService } from "../services/AuthService.js";
 import { generateToken } from "../utils/utils.js";
+import { sendEmail } from "../utils/email.js";
+import logger from "../utils/logger.js";
+import asyncHandler from "../middleware/asyncHandler.js";
+import AppError from "../utils/AppError.js";
 
-// Authentication Controllers
+export const AuthRegister = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body;
+  const user = await AuthRegisterService(name, email, password);
 
-export const AuthRegister = async (req, res) => {
-  if (!req.body.name || !req.body.email || !req.body.password) {
-    return res
-      .status(400)
-      .json({ message: "Name, email, and password are required" });
-  } else {
-    try {
-      const user = await AuthRegisterService(
-        req.body.name,
-        req.body.email,
-        req.body.password,
-      );
-
-      generateToken(res, user._id);
-
-      return res.status(201).json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-      });
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
-    }
-  }
-};
-
-export const AuthLogin = async (req, res) => {
-  const { email, password } = req.body;
+  generateToken(res, user._id);
 
   try {
-    const user = await AuthLoginService(email, password);
-
-    generateToken(res, user._id);
-
-    res.status(200).json({
-      name: user.name,
-      email: user.email,
-    });
-  } catch (error) {
-    res.status(401).json({ message: error.message });
+    const welcomeHtml = `<h1>Welcome ${user.name}!</h1><p>Thank you for registering at Payment Gateway.</p>`;
+    await sendEmail(user.email, "Welcome to Payment Gateway", welcomeHtml);
+  } catch (emailError) {
+    logger.error({ err: emailError }, "Failed to send welcome email");
   }
-};
+
+  res.status(201).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+  });
+});
+
+export const AuthLogin = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  const user = await AuthLoginService(email, password);
+
+  generateToken(res, user._id);
+
+  try {
+    const loginHtml = `<p>Hello ${user.name}, you just logged into your account.</p><p>If this wasn't you, please secure your account.</p>`;
+    await sendEmail(user.email, "Login Notification", loginHtml);
+  } catch (emailError) {
+    logger.error({ err: emailError }, "Failed to send login notification email");
+  }
+
+  res.status(200).json({
+    name: user.name,
+    email: user.email,
+  });
+});
 
 export const LogoutUser = (req, res) => {
   res.cookie("jwt", "", {

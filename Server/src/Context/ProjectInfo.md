@@ -1,65 +1,82 @@
-# Project Overview: Payment Gateway (Server)
+# Payment Gateway — Project Info
 
-A Node.js backend for a Payment Gateway system, built using Express and MongoDB. The project follows a modular architecture with a clear separation of concerns using Controllers, Services, and Models.
+## Overview
+Production-grade Payment Gateway backend. Architecture prioritises provider abstraction, idempotency, observability, and multi-tenancy. Currently at **Phase 0** (auth scaffold from the Roadmap).
 
-## Core Technologies
-- **Runtime:** Node.js (ES Modules)
-- **Framework:** Express.js
-- **Database:** MongoDB (via Mongoose)
-- **Security:** bcryptjs for password hashing, jsonwebtoken (JWT) for authentication via HTTP-only cookies (`cookie-parser`).
+## Stack
+| Layer | Choice | Why |
+|-------|--------|-----|
+| Runtime | Node.js 22+, ES Modules | Universal, strong ecosystem |
+| Framework | Express 5 | Minimal, well-understood |
+| Database | MongoDB 7+ via Mongoose 9 | Flexible schema for payment metadata |
+| Cache / Idempotency | Redis | Multi-purpose (rate-limit, key-value, pub/sub) |
+| Message Broker | RabbitMQ | Mature, AMQP, dead-letter support |
+| Auth | JWT (httpOnly cookie) + bcryptjs | Stateless sessions, secure by default |
+| Validation | Zod | Runtime types, inferred TypeScript-like schemas |
+| Observability | OpenTelemetry + Prometheus + Grafana | Vendor-neutral, industry standard |
 
 ## Project Structure
-The project logic is contained within the `Server` directory:
-- `server.js`: The entry point. Handles DB connection and server initialization.
-- `src/app.js`: Configures middleware (including `cookie-parser`) and routes.
-- `src/config/`: Configuration (e.g., Database).
-- `src/controller/`: Handles HTTP requests.
-- `src/services/`: Business logic.
-- `src/models/`: Mongoose schemas.
-- `src/routes/`: API endpoints.
-- `src/middleware/`: Custom middleware (e.g., Auth checks).
-- `src/utils/`: Helper functions (e.g., `generateToken` for JWT).
+```
+Server/
+├── server.js                 # Entry: connect DB, start HTTP
+├── src/
+│   ├── app.js                # Express app setup, middleware chain, route mounting
+│   ├── config/               # DB, Redis, broker connections
+│   ├── controller/           # HTTP handlers (thin — validate + respond)
+│   ├── services/             # Business logic (fat — orchestrates models, providers, events)
+│   ├── models/               # Mongoose schemas + indexes
+│   ├── middleware/            # Auth, rate-limit, validation, error handler
+│   ├── routes/               # Express Router definitions
+│   ├── utils/                # Helpers (token gen, email, crypto)
+│   ├── providers/            # Payment gateway adapters (Stripe, mock)
+│   ├── events/               # Event schemas, producers, consumers
+│   ├── jobs/                 # Background workers (emails, reconciliation)
+│   ├── validators/           # Zod schemas per route
+│   └── Context/              # AI-agent context files (Roadmap, Infra, Agent, Error)
+└── package.json
+```
 
-## Building and Running
+## Architecture Constraints
+- **ESM only** — `"type": "module"` in package.json; use `import`/`export` everywhere
+- **Controller-Service-Repository** pattern: controllers handle HTTP, services hold business rules, models access data
+- **Provider Strategy**: payment providers implement a common interface; swap via config/env
+- **Idempotency**: all POST payment endpoints require `Idempotency-Key` header; replay rejected with `409 Conflict`
+- **Error shape**: all errors return `{ error: { code, message, details? } }`
 
-### Prerequisites
-- Node.js installed.
-- MongoDB instance (local or Atlas).
-- Environment variables configured in a `.env` file within the `Server` directory.
+## Key Endpoints (after full build)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /api/v1/auth/register | Create account |
+| POST | /api/v1/auth/login | Get session cookie |
+| POST | /api/v1/auth/logout | Clear session cookie |
+| GET  | /api/v1/auth/profile | Get current user (protected) |
+| POST | /api/v1/payments/intent | Create payment intent (idempotent) |
+| GET  | /api/v1/payments/:id | Get payment status |
+| POST | /api/v1/payments/:id/capture | Capture authorized payment |
+| POST | /api/v1/payments/:id/refund | Refund (partial / full) |
+| POST | /api/v1/webhooks/:provider | Provider webhook receiver |
+| GET  | /api/v1/health | Liveness probe |
+| GET  | /api/v1/ready | Readiness probe (checks DB) |
 
-### Key Commands (run from the `Server` directory)
-- **Start Server:** `npm start` (Runs `node server.js`)
-- **Development Mode:** `npx nodemon server.js` (Recommended for development)
-- **Install Dependencies:** `npm install`
+## Running Locally
+```bash
+cd Server
+npm install
+# ensure .env has MONGO_URI, JWT_SECRET, REDIS_URL
+npm start                  # node server.js
+npx nodemon server.js      # dev mode with auto-restart
+```
 
-### Environment Variables
-Required variables in `Server/.env`:
-- `MONGO_URI`: MongoDB connection string.
-- `PORT`: (Optional) Port number for the server (defaults to 3000).
-- `JWT_SECRET`: Secret key for signing JWT tokens.
-- `NODE_ENV`: Set to `development` for local testing (allows cookies over HTTP) or `production`.
-
-## Feature Implementations
-
-### Authentication Flow
-- **Register/Login**: Verifies credentials and uses `generateToken` utility to sign a JWT and set it as an HTTP-only cookie (`jwt`).
-- **Logout**: Clears the `jwt` cookie by setting it to an empty string and expiring it immediately.
-- **Middleware (`protect`)**: Intercepts requests, verifies the JWT cookie using `JWT_SECRET`, and attaches the user object (minus password) to `req.user`.
-
-### API Endpoints
-- `POST /api/auth/register`: Public - Register new user.
-- `POST /api/auth/login`: Public - Authenticate user & get cookie.
-- `POST /api/auth/logout`: Public - Clear authentication cookie.
-- `GET /api/auth/profile`: Protected - Returns the currently logged-in user's profile info.
-
-## Development Conventions
-- **Module System:** Uses ES Modules (`import`/`export`).
-- **Architecture:** Controller-Service-Model pattern.
-  - **Controllers:** Keep them thin; focus on request validation and response formatting.
-  - **Services:** Implement business logic here.
-  - **Models:** Define schemas and database-level hooks (e.g., password hashing).
-- **Naming Conventions:**
-  - Files: CamelCase or kebab-case (mostly CamelCase seen in current structure).
-  - Functions/Variables: camelCase.
-  - Models: PascalCase.
-- **Error Handling:** Use try-catch blocks in controllers and services, returning appropriate HTTP status codes.
+## Environment Variables
+```
+PORT=3000
+NODE_ENV=development|production
+MONGO_URI=mongodb://...
+JWT_SECRET=...
+REDIS_URL=redis://...
+SMTP_USER=...
+SMTP_PASS=...
+SENDER_EMAIL=...
+PAYMENT_PROVIDER=stripe|mock
+STRIPE_SECRET_KEY=...
+```

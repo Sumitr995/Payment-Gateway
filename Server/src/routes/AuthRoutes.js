@@ -1,13 +1,13 @@
-// Routes for Authentication (Login, Register, etc.)
-import express from 'express';
+import { Router } from 'express';
 import { AuthRegister, AuthLogin, LogoutUser, GetUserProfile } from '../controller/AuthController.js';
 import { protect } from '../middleware/AuthMiddleware.js';
+import validate from '../middleware/validate.js';
+import { registerSchema, loginSchema } from '../validators/authValidators.js';
 
-const router = express.Router();
+const router = Router();
 
-// Authentication Routes
-router.post('/register', AuthRegister);
-router.post('/login', AuthLogin);
+router.post('/register', validate(registerSchema), AuthRegister);
+router.post('/login', validate(loginSchema), AuthLogin);
 router.post('/logout', LogoutUser);
 router.get('/profile', protect, GetUserProfile);
 
