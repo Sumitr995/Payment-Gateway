@@ -24,3 +24,5 @@ yarn-debug.log*
 yarn-error.log*
 # Ignore lock files 
 package-lock.json
+
+# Ignore Context files

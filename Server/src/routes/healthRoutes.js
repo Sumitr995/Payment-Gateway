@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
+import redis from '../config/redis.js';
 
 const router = Router();
 
@@ -11,19 +12,19 @@ router.get('/health', (_req, res) => {
   });
 });
 
-router.get('/ready', (req, res, next) => {
+router.get('/ready', async (req, res, next) => {
   const dbState = mongoose.connection.readyState;
-  if (dbState !== 1) {
-    return res.status(503).json({
-      status: 'error',
-      message: 'Database not ready',
-      dbState,
-    });
+  const services = { database: dbState === 1 ? 'connected' : 'disconnected' };
+
+  try {
+    await redis.ping();
+    services.redis = 'connected';
+  } catch {
+    services.redis = 'disconnected';
   }
-  res.json({
-    status: 'ok',
-    services: { database: 'connected' },
-  });
+
+  const allOk = services.database === 'connected' && services.redis === 'connected';
+  res.status(allOk ? 200 : 503).json({ status: allOk ? 'ok' : 'error', services });
 });
 
 export default router;

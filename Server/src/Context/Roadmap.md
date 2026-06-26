@@ -145,8 +145,13 @@ Core Express + MongoDB auth scaffold. Single-user session via JWT cookies.
 - [x] **Phase 1.1**: Rate Limiting (`express-rate-limit`, global + auth-specific)
 - [x] **Phase 1.2**: Input Validation (Zod schemas, `validate` middleware)
 - [x] **Phase 1.4**: Global Error Handler (`AppError`, `asyncHandler`, `errorHandler` middleware)
-- [ ] **Phase 1.3**: Idempotency (Redis-backed)
-- [ ] **Phase 2**: Payment Core
+- [x] **Phase 1.3**: Idempotency (Redis-backed)
+- [x] **Phase 2.1**: Payment Models & Schema (`Payment`, `Transaction`, `Refund` Mongoose models; status enum + state machine)
+- [ ] **Phase 2.2**: Payment Intents API
+- [x] **Phase 2.3**: Provider Abstraction (Strategy pattern — `StripeProvider`, `MockProvider`; swap via config)
+- [ ] **Phase 2.4**: Webhook Receiver
+- [ ] **Phase 2.5**: Refund & Capture
+- [ ] **Phase 3**: Caching & Performance
 - [ ] **Phase 3**: Caching & Performance
 - [ ] **Phase 4**: Security Hardening
 - [ ] **Phase 5**: Async & Event-Driven
